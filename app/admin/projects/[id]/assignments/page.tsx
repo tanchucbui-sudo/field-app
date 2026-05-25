@@ -17,13 +17,19 @@ export default function AssignmentsPage() {
   const supabase = createClient()
 
   async function load() {
-    const [{ data: s }, { data: u }, { data: a }] = await Promise.all([
+    const [{ data: s }, { data: members }, { data: a }] = await Promise.all([
       supabase.from('stores').select('*').eq('project_id', projectId).order('name'),
-      supabase.from('project_members').select('profiles(*)').eq('project_id', projectId),
+      supabase.from('project_members').select('user_id').eq('project_id', projectId),
       supabase.from('daily_assignments').select('*, store:stores(*), profile:profiles(*)').eq('project_id', projectId).eq('assigned_date', date)
     ])
     setStores(s ?? [])
-    setUsers((u ?? []).map((m: any) => m.profiles).filter(Boolean))
+    const userIds = (members ?? []).map((m: any) => m.user_id).filter(Boolean)
+    if (userIds.length > 0) {
+      const { data: u } = await supabase.from('profiles').select('*').in('id', userIds)
+      setUsers(u ?? [])
+    } else {
+      setUsers([])
+    }
     setAssignments(a ?? [])
   }
 
